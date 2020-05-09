@@ -3,26 +3,36 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace Confuser.Runtime {
-	internal static class AntiDebugWin32 {
-		static void Initialize() {
-			string x = "COR";
-			if (Environment.GetEnvironmentVariable(x + "_PROFILER") != null ||
-			    Environment.GetEnvironmentVariable(x + "_ENABLE_PROFILING") != null)
-				Environment.FailFast(null);
+namespace Confuser.Runtime
+{
+    internal static class AntiDebugWin32
+    {
+        private static void Initialize()
+        {
+            string x = "COR";
+            if (Environment.GetEnvironmentVariable(x + "_PROFILER") != null ||
+                Environment.GetEnvironmentVariable(x + "_ENABLE_PROFILING") != null)
+                Environment.FailFast(null);
             //Anti dnspy
             Process here = GetParentProcess();
-            if (here.ProcessName.ToLower().Contains("dnspy"))
-                Environment.FailFast("");
+            Process hereParent = ParentProcessUtilities.GetParentProcess(here.Handle);
 
+            if (!here.ProcessName.ToLower().Contains("fooww"))
+            {
+                if (here.ProcessName.Contains("BugSniper"))
+                    return;
+                if (hereParent != null || !here.ProcessName.ToLower().Contains("explorer"))
+                    Environment.FailFast(null);
+            }
             var thread = new Thread(Worker);
-			thread.IsBackground = true;
-			thread.Start(null);
-		}
+            thread.IsBackground = true;
+            thread.Start(null);
+        }
 
         //https://stackoverflow.com/questions/394816/how-to-get-parent-process-in-net-in-managed-way
 
-        private static ParentProcessUtilities PPU;
+        public static ParentProcessUtilities PPU;
+
         public static Process GetParentProcess()
         {
             return PPU.GetParentProcess();
@@ -32,10 +42,11 @@ namespace Confuser.Runtime {
         /// A utility class to determine a process parent.
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
-        struct ParentProcessUtilities
+        public struct ParentProcessUtilities
         {
             // These members must match PROCESS_BASIC_INFORMATION
             internal IntPtr Reserved1;
+
             internal IntPtr PebBaseAddress;
             internal IntPtr Reserved2_0;
             internal IntPtr Reserved2_1;
@@ -44,8 +55,6 @@ namespace Confuser.Runtime {
 
             [DllImport("ntdll.dll")]
             private static extern int NtQueryInformationProcess(IntPtr processHandle, int processInformationClass, ref ParentProcessUtilities processInformation, int processInformationLength, out int returnLength);
-
-
 
             /// <summary>
             /// Gets the parent process of the current process.
@@ -93,54 +102,59 @@ namespace Confuser.Runtime {
         }
 
         [DllImport("kernel32.dll")]
-		static extern bool CloseHandle(IntPtr hObject);
+        private static extern bool CloseHandle(IntPtr hObject);
 
-		[DllImport("kernel32.dll")]
-		static extern bool IsDebuggerPresent();
+        [DllImport("kernel32.dll")]
+        private static extern bool IsDebuggerPresent();
 
-		[DllImport("kernel32.dll", CharSet = CharSet.Auto)]
-		static extern int OutputDebugString(string str);
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+        private static extern int OutputDebugString(string str);
 
-		static void Worker(object thread) {
-			var th = thread as Thread;
-			if (th == null) {
-				th = new Thread(Worker);
-				th.IsBackground = true;
-				th.Start(Thread.CurrentThread);
-				Thread.Sleep(500);
-			}
-			while (true) {
-				// Managed
-				if (Debugger.IsAttached || Debugger.IsLogging())
-					Environment.FailFast("");
+        private static void Worker(object thread)
+        {
+            var th = thread as Thread;
+            if (th == null)
+            {
+                th = new Thread(Worker);
+                th.IsBackground = true;
+                th.Start(Thread.CurrentThread);
+                Thread.Sleep(500);
+            }
+            while (true)
+            {
+                // Managed
+                if (Debugger.IsAttached || Debugger.IsLogging())
+                    Environment.FailFast("");
 
-				// IsDebuggerPresent
-				if (IsDebuggerPresent())
-					Environment.FailFast("");
+                // IsDebuggerPresent
+                if (IsDebuggerPresent())
+                    Environment.FailFast("");
 
                 // OpenProcess
                 Process ps = Process.GetCurrentProcess();
-				if (ps.Handle == IntPtr.Zero)
-					Environment.FailFast("");
-				ps.Close();
+                if (ps.Handle == IntPtr.Zero)
+                    Environment.FailFast("");
+                ps.Close();
 
-				// OutputDebugString
-				if (OutputDebugString("") > IntPtr.Size)
-					Environment.FailFast("");
+                // OutputDebugString
+                if (OutputDebugString("") > IntPtr.Size)
+                    Environment.FailFast("");
 
-				// CloseHandle
-				try {
-					CloseHandle(IntPtr.Zero);
-				}
-				catch {
-					Environment.FailFast("");
-				}
+                // CloseHandle
+                try
+                {
+                    CloseHandle(IntPtr.Zero);
+                }
+                catch
+                {
+                    Environment.FailFast("");
+                }
 
-				if (!th.IsAlive)
-					Environment.FailFast("");
+                if (!th.IsAlive)
+                    Environment.FailFast("");
 
-				Thread.Sleep(1000);
-			}
-		}
+                Thread.Sleep(1000);
+            }
+        }
     }
 }
