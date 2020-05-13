@@ -31,7 +31,7 @@ _ReSharper*/
 !packages/*/build/
 packages/
 /Confuser.Test
-*.sln.*
+
 gh-pages/
 GlobalAssemblyInfo.cs
 /Build/*.zip
@@ -44,4 +44,3 @@ dbg/dbg.csproj
 dbg/Program.cs
 dbg/app.config
 dbg/Properties/AssemblyInfo.cs
-Confuser2.sln
