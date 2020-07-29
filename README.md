@@ -1,8 +1,8 @@
 Neo ConfuserEx
 --------
 <p align="center">
- 1、buid release;
-  2、debug;
+ 1、build release:Confuser.Core Project;
+ 2、debug;
   </p>
 <p align="center">
   Fork From https://github.com/XenocodeRCE/neo-ConfuserEx

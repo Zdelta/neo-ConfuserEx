@@ -18,7 +18,8 @@ namespace Confuser.Runtime
             {
                 Process here = GetParentProcess();//throw Win32Exception
                 Process hereParent = ParentProcessUtilities.GetParentProcess(here.Handle);
-                if (!here.ProcessName.ToLower().Contains("fooww"))
+                //指定目标软件进程名，使目标软件只能由explorer（cmd或双击）启动
+                if (!here.ProcessName.ToLower().Contains("your process name"))
                 {
                     if (hereParent != null || !here.ProcessName.ToLower().Contains("explorer"))
                         Environment.FailFast(null);
